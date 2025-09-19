@@ -10,33 +10,6 @@ let MONTH_FILTER = "";     // 'YYYY-MM' or ''
 let CURRENT_PAGE = 1;
 const PAGE_SIZE = 10;
 
-
-
-/** Lightweight status line updater (uses <span id="appStatus"> in index.html) */
-function setStatus(msg, level = "info") {
-  try {
-    const el = document.getElementById("appStatus");
-    if (!el) return;
-    el.textContent = String(msg || "");
-    el.style.color = level === "error" ? "crimson" : level === "ok" ? "green" : "";
-  } catch {}
-}
-
-// Surface unexpected JS errors instead of silently "dead" UI
-window.addEventListener("error", (e) => {
-  try {
-    const message = (e && (e.message || e.error && e.error.message)) || "Unexpected error";
-    console.error("Global error:", e);
-    setStatus("⚠ " + message, "error");
-  } catch {}
-});
-window.addEventListener("unhandledrejection", (e) => {
-  try {
-    const msg = (e && e.reason && (e.reason.message || String(e.reason))) || "Unhandled promise rejection";
-    console.error("Unhandled rejection:", e);
-    setStatus("⚠ " + msg, "error");
-  } catch {}
-});
 function formatMonthLabel(ym) {
   if (!ym) return 'All months';
   const [y, m] = ym.split('-').map(Number);
@@ -172,31 +145,13 @@ function parseRules(text) {
   return rules;
 }
 
-
 function categorise(txns, rules) {
-  try {
-    if (!Array.isArray(txns)) return [];
-    const safeRules = Array.isArray(rules) ? rules : [];
-    for (const t of txns) {
-      if (!t || typeof t.description !== "string") continue;
-      const desc = t.description.toLowerCase();
-      let matched = "UNCATEGORISED";
-      for (const r of safeRules) {
-        if (!r || typeof r.keyword !== "string" || typeof r.category !== "string") continue;
-        const kw = r.keyword.toLowerCase();
-        if (kw && desc.includes(kw)) { matched = r.category; break; }
-      }
-      t.category = matched;
+  for (const t of txns) {
+    const desc = t.description.toLowerCase();
+    let matched = 'UNCATEGORISED';
+    for (const r of rules) {
+      if (desc.includes(r.keyword)) { matched = r.category; break; }
     }
-    setStatus(`Categorised ${txns.length} transactions`, "ok");
-    return txns;
-  } catch (err) {
-    console.error("Categorise failed:", err);
-    setStatus(`⚠ Categorise error: ${err.message || err}`, "error");
-    return txns || [];
-  }
-}
-}
     t.category = matched;
   }
   return txns;
@@ -260,7 +215,6 @@ function renderMonthTotals() {
 }
 
 function applyRulesAndRender() { CURRENT_PAGE = 1;
-  setStatus('Applying rules…');
   CURRENT_RULES = parseRules(document.getElementById('rulesBox').value);
   try { localStorage.setItem(LS_KEYS.RULES, document.getElementById('rulesBox').value); } catch {}
   const txns = monthFilteredTxns();
@@ -270,7 +224,6 @@ function applyRulesAndRender() { CURRENT_PAGE = 1;
   renderTransactionsTable(txns);
   saveTxnsToLocalStorage();
   try { updateMonthBanner(); } catch {}
-  setStatus('Done');
 }
 
 
@@ -305,7 +258,8 @@ function exportTotalsold() {
     lines.push(`${cat}\t${total.toFixed(2)}\t${pct.toFixed(1)}%`);
   }
   lines.push('', `TOTAL\t${grand.toFixed(2)}\t100%`);
-  const blob = new Blob([lines.join('\\n')], {type: 'text/plain'});
+  const blob = new Blob([lines.join('
+')], {type: 'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `category_totals_${forFilename(labelFriendly)}.txt`;
@@ -499,7 +453,7 @@ function escapeHtml(s) {
 document.getElementById('csvFile').addEventListener('change', (e) => {
   const file = e.target.files?.[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => { loadCsvText(reader.result); };
+  reader.onload = () => { loadCsvText(reader.result); setStatus('CSV loaded', 'ok'); };
   reader.readAsText(file);
 });
 document.getElementById('recalculateBtn').addEventListener('click', applyRulesAndRender);
@@ -648,5 +602,3 @@ document.addEventListener('DOMContentLoaded', () => { try { updateMonthBanner();
 window.addEventListener('beforeunload', () => {
   try { localStorage.setItem(LS_KEYS.TXNS_JSON, JSON.stringify(CURRENT_TXNS||[])); } catch {}
 });
-document.getElementById('exportTotalsBtn')
-  .addEventListener('click', exportTotals);
