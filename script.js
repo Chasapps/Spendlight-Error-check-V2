@@ -258,8 +258,7 @@ function exportTotalsold() {
     lines.push(`${cat}\t${total.toFixed(2)}\t${pct.toFixed(1)}%`);
   }
   lines.push('', `TOTAL\t${grand.toFixed(2)}\t100%`);
-  const blob = new Blob([lines.join('
-')], {type: 'text/plain'});
+  const blob = new Blob([lines.join('\\n')], {type: 'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `category_totals_${forFilename(labelFriendly)}.txt`;
@@ -453,7 +452,7 @@ function escapeHtml(s) {
 document.getElementById('csvFile').addEventListener('change', (e) => {
   const file = e.target.files?.[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => { loadCsvText(reader.result); setStatus('CSV loaded', 'ok'); };
+  reader.onload = () => { loadCsvText(reader.result); };
   reader.readAsText(file);
 });
 document.getElementById('recalculateBtn').addEventListener('click', applyRulesAndRender);
@@ -602,3 +601,5 @@ document.addEventListener('DOMContentLoaded', () => { try { updateMonthBanner();
 window.addEventListener('beforeunload', () => {
   try { localStorage.setItem(LS_KEYS.TXNS_JSON, JSON.stringify(CURRENT_TXNS||[])); } catch {}
 });
+document.getElementById('exportTotalsBtn')
+  .addEventListener('click', exportTotals);
